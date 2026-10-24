@@ -1,0 +1,224 @@
+PYTHON SONG RECOGNITION: OUTLINE AND TODO LIST
+Created: October 20, 2026
+
+GOAL
+Build a Shazam-style application that identifies a short recording by
+comparing its audio fingerprints with songs you have already indexed.
+
+This is a conceptual build plan, with no implementation code. It adapts
+the video discussion into practical milestones. The video's chapters and
+linked project were reviewed; a usable video transcript was unavailable.
+
+HOW THE PROJECT FITS TOGETHER
+1. Import songs and prepare their audio.
+2. Analyze frequencies over time.
+3. Select distinctive peaks and turn peak pairs into fingerprints.
+4. Store fingerprints with song identities and timestamps.
+5. Process an unknown clip using the same method.
+6. Look up matching fingerprints and check their timing alignment.
+7. Return a supported match or a clear no-match result.
+8. Add microphone recording, then a simple interface.
+
+RECOMMENDED AUDIO FORMAT
+For the simplest first version, use WAV files containing uncompressed
+16-bit PCM audio. Python's standard wave module supports PCM WAV.
+44.1 kHz is a practical starting sample rate; keep the same rate and
+channel policy for both catalog and query processing. Mono simplifies
+analysis. These are starter settings, not a requirement of fingerprinting.
+
+Keep original source files intact. FLAC is also a good source format: it
+stores audio losslessly in less space and can be decoded for analysis.
+MP3, AAC, and audio inside MP4 can still be usable sources. A clean source
+recording matters more than changing its filename or container.
+You do not need 24-bit or 96 kHz audio for this first version.
+
+Use FFmpeg as the decoding/conversion step. Extract and decode the chosen
+audio track to PCM samples, optionally saved as a WAV file for inspection.
+Changing a filename from .mp4 to .wav does not convert its contents.
+Decoding compressed audio to WAV does not restore lost sound quality.
+
+Use the same sample rate and channel treatment for catalog songs and
+query recordings. Handle silent videos, missing audio, and multiple audio
+tracks explicitly. For early testing, choose files with clear music and
+minimal dialogue. You do not need to redownload everything as WAV.
+
+HOW TO USE THIS CHECKLIST
+Work in order. Mark [ ] as [x] when a task is complete. Verify the
+completion goal before proceeding. Keep interface and integration work
+until the recognition engine can identify local excerpts reliably.
+
+1. DEFINE THE FIRST VERSION
+[ ] Define the initial action: identify a local audio/video clip against
+    a small collection of known songs.
+[X] Start with 10-20 different songs, including your MP4 files if desired.
+[X] Keep 5 additional songs outside the catalog for no-match evaluation.
+[X] Record titles, artists, and the exact recording/version for each song.
+[X] Choose a simple local workflow and SQLite for persistent storage.
+[ ] Write down the scope: recognition of indexed recordings; humming,
+    covers, and substantially altered versions are outside version one.
+
+Completion goal: You have a small, clearly labeled reference collection
+and separate unknown-song examples.
+
+2. IMPORT AND PREPARE AUDIO
+[ ] Accept one local media file and detect whether it has usable audio.
+[ ] Select the intended audio track; document your default when several
+    tracks are available.
+[ ] Decode the audio.
+[X] Choose one fixed sample rate and a consistent channel policy, such
+    as mono, for all catalog and query inputs.
+[ ] Resample correctly when needed, including filtering to avoid aliasing.
+[ ] Confirm that preparation preserves duration, pitch, and playback speed.
+[X] Reject unreadable, empty, silent, or too-short inputs with clear reasons.
+[ ] Keep originals and temporary processed audio separate.
+
+Completion goal: An MP4 and an audio-only file can both produce usable
+audio samples through the same preparation process.
+
+3. UNDERSTAND AND BUILD THE FREQUENCY ANALYSIS
+[ ] Understand sample rate, frequency, amplitude, and a spectrogram.
+[ ] Understand why you examine short overlapping windows of audio.
+[ ] Understand the purpose of a window function and the Fourier transform.
+[ ] Generate frequency magnitudes for each window.
+[ ] Preserve accurate time and frequency coordinates throughout analysis.
+[ ] Keep analysis settings in one place so catalog and query processing
+    cannot quietly use different settings.
+[ ] Check a simple known tone and then one song to confirm the analysis
+    behaves sensibly. An optional diagnostic plot can help.
+
+Completion goal: You can explain what the representation means and
+consistently analyze the same input.
+
+4. SELECT AUDIO LANDMARKS
+[ ] Identify strong peaks across time and frequency.
+[ ] Choose a peak-selection rule and a reasonable density of landmarks.
+[ ] Avoid keeping large amounts of near-silence or weak background detail.
+[ ] Preserve each selected peak's time and frequency.
+[ ] Compare peaks from a full song with peaks from an excerpt of it.
+[ ] Check whether useful landmarks remain after a modest volume change.
+
+Completion goal: Corresponding sections of a song and excerpt retain
+enough similar landmarks to support matching.
+
+5. CREATE FINGERPRINTS
+[ ] Pair each landmark with a limited number of nearby later landmarks.
+[ ] Describe each pair using both frequencies and the time between them.
+[ ] Convert each description into a stable, repeatable fingerprint key.
+[ ] Keep the first landmark's timestamp separate from the key.
+[ ] Retain repeated occurrences of a fingerprint instead of overwriting
+    earlier occurrences.
+[ ] Apply exactly the same fingerprinting rules to songs and queries.
+[ ] Verify that an excerpt shares fingerprints with its source song even
+    when the excerpt begins partway through the original.
+
+Completion goal: One song produces many fingerprints, and a short excerpt
+reproduces a useful subset. A whole-file checksum will not accomplish this.
+
+6. BUILD THE SEARCHABLE SONG CATALOG
+[ ] Store song identifiers, titles, artists, durations, and source details.
+[ ] Store fingerprint keys, song identifiers, and occurrence timestamps.
+[ ] Make lookup by fingerprint key efficient.
+[ ] Support one fingerprint occurring at multiple positions or in multiple
+    songs.
+[ ] Import the starter collection and report processing success/failure.
+[ ] Avoid accidentally indexing the same source file repeatedly.
+[ ] Preserve the catalog across application restarts.
+[ ] Record the fingerprint configuration/version used for the catalog.
+    Rebuild affected fingerprints when incompatible settings change.
+
+Completion goal: After restarting, you can retrieve all saved occurrences
+of a fingerprint and their associated song details.
+
+7. RECOGNIZE LOCAL EXCERPTS
+[ ] Prepare and fingerprint a query clip without adding it to the catalog.
+[ ] Retrieve catalog occurrences of its fingerprints.
+[ ] Group candidate matches by song.
+[ ] Calculate the time difference between each catalog occurrence and
+    its matching query occurrence.
+[ ] Group similar differences, allowing small timing variations.
+[ ] Rank songs by evidence that agrees on one time offset.
+[ ] Return the leading candidate, match evidence, and estimated position.
+[ ] Add an acceptance rule so weak or ambiguous evidence can return
+    "no confident match" rather than forcing a song choice.
+[ ] Keep scores as scores; do not call them probability percentages
+    without measuring and calibrating that interpretation.
+
+Timing example: matches at query seconds 1, 3, and 6 that occur at song
+seconds 46, 48, and 51 all support a 45-second offset.
+
+Completion goal: Identify clean excerpts from different positions in
+stored songs and reject examples with insufficient evidence.
+
+8. EVALUATE AND IMPROVE THE ENGINE
+[ ] Create 5-, 10-, and 15-second queries from different song positions.
+[ ] Include starts that do not line up neatly with analysis windows.
+[ ] Measure correct identifications, wrong identifications, rejected known
+    songs, rejected unknown songs, and processing time.
+[ ] Test clean clips first, then quieter clips and added background noise.
+[ ] Test silence, speech-only clips, and songs absent from the catalog.
+[ ] Use some clips for tuning and keep different clips for final evaluation.
+[ ] Change one setting at a time and record whether it helps.
+[ ] Investigate incorrect matches before simply lowering acceptance rules.
+
+Completion goal: You have a repeatable evaluation and documented results,
+including failure cases. Do not rely on one successful demonstration.
+
+9. ADD MICROPHONE RECORDING
+[ ] Record a short clip from an explicitly selected microphone.
+[ ] Let the user start, stop, cancel, and retry recording.
+[ ] Show whether recording is active and whether audio is being captured.
+[ ] Handle missing devices, permissions, silence, and interrupted recording.
+[ ] Send recorded audio through the existing preparation and matching flow.
+[ ] Test a catalog song played through speakers in a quiet room.
+[ ] Repeat with different distances, playback volumes, and background noise.
+
+Completion goal: Identify actual speaker-to-microphone recordings and
+measure how they perform compared with clean file excerpts.
+
+10. ADD A SIMPLE INTERFACE AND FINISH VERSION ONE
+[ ] Provide actions to import songs, choose a query file, and record audio.
+[ ] Show clear states: importing, recording, analyzing, matched, and failed.
+[ ] Display the song title and artist when a match is accepted.
+[ ] Display an understandable no-match message with a retry option.
+[ ] Show catalog contents and allow removal of a song with its fingerprints.
+[ ] Keep the interface responsive during longer imports and searches.
+[ ] Document setup, supported inputs, usage, known limits, and test results.
+[ ] Demonstrate one file query, one microphone query, and one unknown song.
+
+Completion goal: A new user can add songs and recognize them by following
+your instructions, without modifying the application.
+
+LATER TODO LIST
+[ ] Batch import larger collections with progress and cancellation.
+[ ] Improve matching speed only after measuring actual bottlenecks.
+[ ] Evaluate more genres, repeated sections, remasters, and noisy recordings.
+[ ] Add artwork, listening history, and optional playback links.
+[ ] Consider external metadata/catalog integrations after local recognition
+    is reliable. Metadata access alone does not provide reference audio.
+[ ] Add a web interface or hosted service if you need remote access.
+[ ] Investigate pitch/speed changes as a separate recognition extension.
+[ ] Treat humming and cover recognition as a separate research problem.
+
+FIRST SESSION: START HERE
+[ ] Gather and label 10-20 songs plus 5 unknown-song examples.
+[ ] Prepare the audio from one MP4 and listen to the decoded result.
+[ ] Confirm its duration, sample rate, and channel handling.
+[ ] Make a short excerpt for your first recognition experiment.
+[ ] Begin frequency analysis for that single song.
+
+REFERENCES
+Video: https://www.youtube.com/watch?v=a0CVCcb0RJM
+Creator's project: https://github.com/cgzirim/seek-tune
+Original audio-fingerprinting paper:
+https://www.princeton.edu/~cuff/ele301/files/Wang03-shazam.pdf
+FFmpeg stream selection and audio conversion:
+https://ffmpeg.org/ffmpeg.html
+FFmpeg supported formats:
+https://ffmpeg.org/ffmpeg-formats.html
+Python PCM WAV support:
+https://docs.python.org/3/library/wave.html
+FLAC format:
+https://xiph.org/flac/
+
+The milestones and evaluation tasks above are proposed for your Python
+version. They are not claims about measured performance of the video demo.

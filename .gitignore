@@ -1,0 +1,32 @@
+# Local Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated databases and local audio
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.wav
+*.mp3
+*.mp4
+*.m4a
+*.flac
+*.ogg
+*.webm
+*.zip
+*:Zone.Identifier
+
+# Local settings and credentials
+.env
+.env.*
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
