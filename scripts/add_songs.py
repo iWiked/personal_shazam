@@ -169,7 +169,7 @@ def add_test_songs() -> list[int]:
     if not songs:
         raise ValueError(f"No WAV files found in {TEST_SONGS_DIR}")
 
-    song_ids = []
+    song_ids: list[int] = []
     for song in songs:
         try:
             song_ids.append(add_song(song))

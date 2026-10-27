@@ -1,0 +1,1 @@
+Research how finding the peaks truly works, i dont have a strong enough understanding yet
